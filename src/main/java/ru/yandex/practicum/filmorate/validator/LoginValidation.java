@@ -1,8 +1,6 @@
 package ru.yandex.practicum.filmorate.validator;
 
 import javax.validation.Constraint;
-import javax.validation.ConstraintValidator;
-import javax.validation.ConstraintValidatorContext;
 import javax.validation.Payload;
 
 import java.lang.annotation.Documented;
