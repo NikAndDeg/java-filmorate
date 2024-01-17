@@ -23,10 +23,3 @@ public @interface BirthDateValidation {
 	Class<? extends Payload>[] payload() default {};
 }
 
-class BirthDateValidator implements ConstraintValidator<BirthDateValidation, LocalDate> {
-	@Override
-	public boolean isValid(LocalDate contactField,
-						   ConstraintValidatorContext cxt) {
-		return contactField.isBefore(LocalDate.now());
-	}
-}
