@@ -23,21 +23,21 @@ public class UserController {
 
 	@PostMapping
 	public User postUser(@Valid @RequestBody User user) {
-		log.info("Post [" + user.toString() + "].");
+		log.info("Post [{}]", user.toString());
 		setUserName(user);
 		userExistCheck(user);
 		addUser(user);
-		safeUserInfo(user);
-		log.info("User posted successfully. Users size [" + users.size() + "].");
+		saveUserInfo(user);
+		log.info("User posted successfully. Users size [{}]", users.size());
 		return user;
 	}
 
 	@PutMapping
 	public User putUser(@Valid @RequestBody User user) {
-		log.info("Put [" + user.toString() + "].");
+		log.info("Put [{}]", user.toString());
 		removeUser(user);
 		users.put(user.getId(), user);
-		safeUserInfo(user);
+		saveUserInfo(user);
 		log.info("User put successfully");
 		return user;
 	}
@@ -63,24 +63,28 @@ public class UserController {
 	}
 
 	private void addUser(User user) {
-		user.setId(++idCounter);
+		setUserId(user);
 		users.put(user.getId(), user);
 	}
 
-	private void safeUserInfo(User user) {
+	private void setUserId(User user) {
+		user.setId(++idCounter);
+	}
+
+	private void saveUserInfo(User user) {
 		emails.add(user.getEmail());
 		names.add(user.getName());
 		logins.add(user.getLogin());
 	}
 
 	private void removeUser(User user) {
-		log.debug("Remove [" + user.toString() + "].");
+		log.debug("Remove [{}]", user.toString());
 		int userId = user.getId();
 		User deletedUser = users.remove(userId);
 		if (deletedUser == null)
 			throw new UserNotExistException("User with id " + userId + " isn't exist.");
 		deleteUserInfo(deletedUser);
-		log.debug("User removed.");
+		log.debug("User removed. Users size [{}]", users.size());
 	}
 
 	private void deleteUserInfo(User user) {

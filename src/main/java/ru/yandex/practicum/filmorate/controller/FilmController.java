@@ -23,16 +23,16 @@ public class FilmController {
 
 	@PostMapping
 	public Film postFilm(@Valid @RequestBody Film film) {
-		log.info("Post [" + film.toString() + "].");
+		log.info("Post [{}]", film.toString());
 		filmExistCheck(film);
 		addFilm(film);
-		log.info("Film posted successfully. Films size [" + films.size() + "].");
+		log.info("Film posted successfully. Films size [{}]", films.size());
 		return film;
 	}
 
 	@PutMapping
 	public Film putFilm(@Valid @RequestBody Film film) {
-		log.info("Put [" + film.toString() + "].");
+		log.info("Put [{}]", film.toString());
 		int filmId = film.getId();
 		if (!films.containsKey(filmId))
 			throw new FilmNotExistException("Film with id " + filmId + " isn't exist.");
@@ -54,7 +54,11 @@ public class FilmController {
 	}
 
 	private void addFilm(Film film) {
+		setFilmId(film);
+		films.put(film.getId(), film);
+	}
+
+	private void setFilmId(Film film) {
 		film.setId(++idCounter);
-		films.put(idCounter, film);
 	}
 }
