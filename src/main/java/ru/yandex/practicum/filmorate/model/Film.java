@@ -13,11 +13,12 @@ import javax.validation.constraints.Size;
 import java.time.LocalDate;
 
 @Data
-@Builder
+@Builder(toBuilder = true)
 public class Film {
 	@EqualsAndHashCode.Exclude
 	private int id;
 	@NotBlank
+	@Size(max = 200)
 	private String name;
 	@Size(max = 200)
 	private String description;

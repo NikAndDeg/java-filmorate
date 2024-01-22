@@ -1,6 +1,5 @@
 package ru.yandex.practicum.filmorate.validator;
 
-import ru.yandex.practicum.filmorate.model.Film;
 import ru.yandex.practicum.filmorate.model.User;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -17,7 +16,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 @SpringBootTest
-class ValidatorTest {
+class UserValidateTest {
 	@Autowired
 	private Validator validator;
 	User defaultUser = User.builder()
@@ -69,33 +68,7 @@ class ValidatorTest {
 		assertEquals("Invalid login!", validateUser(user).get(0).getMessage());
 	}
 
-	@Test
-	void film_not_valid_release_date_before_1986_12_28() {
-		Film film = Film.builder()
-				.name("SomeName")
-				.description("Some Description")
-				.releaseDate(LocalDate.of(1895, 12, 27))
-				.duration(1)
-				.build();
-		assertEquals("Invalid release date!", validateFilm(film).get(0).getMessage());
-	}
-
-	@Test
-	void film_valid_release_date1986_12_28() {
-		Film film = Film.builder()
-				.name("SomeName")
-				.description("Some Description")
-				.releaseDate(LocalDate.of(1895, 12, 28))
-				.duration(1)
-				.build();
-		assertEquals("Invalid release date!", validateFilm(film).get(0).getMessage());
-	}
-
 	private List<ConstraintViolation<User>> validateUser(User user) {
 		return new ArrayList<>(validator.validate(user));
-	}
-
-	private List<ConstraintViolation<Film>> validateFilm(Film film) {
-		return new ArrayList<>(validator.validate(film));
 	}
 }
