@@ -37,7 +37,7 @@ public class FilmValidateTest {
 		film = defaultFilm.toBuilder()
 				.duration(-1)
 				.build();
-		assertEquals("должно быть больше 0", validateFilm(film).get(0).getMessage());
+		assertEquals("must be greater than 0", validateFilm(film).get(0).getMessage());
 	}
 
 	@Test
@@ -45,7 +45,7 @@ public class FilmValidateTest {
 		film = defaultFilm.toBuilder()
 				.name(null)
 				.build();
-		assertEquals("не должно быть пустым", validateFilm(film).get(0).getMessage());
+		assertEquals("must not be blank", validateFilm(film).get(0).getMessage());
 	}
 
 	@Test
@@ -53,7 +53,7 @@ public class FilmValidateTest {
 		film = defaultFilm.toBuilder()
 				.name(RandomString.make(201))
 				.build();
-		assertEquals("размер должен находиться в диапазоне от 0 до 200", validateFilm(film).get(0).getMessage());
+		assertEquals("size must be between 0 and 200", validateFilm(film).get(0).getMessage());
 	}
 
 	@Test
@@ -61,7 +61,7 @@ public class FilmValidateTest {
 		film = defaultFilm.toBuilder()
 				.description(RandomString.make(300))
 				.build();
-		assertEquals("размер должен находиться в диапазоне от 0 до 200", validateFilm(film).get(0).getMessage());
+		assertEquals("size must be between 0 and 200", validateFilm(film).get(0).getMessage());
 	}
 
 	@Test
