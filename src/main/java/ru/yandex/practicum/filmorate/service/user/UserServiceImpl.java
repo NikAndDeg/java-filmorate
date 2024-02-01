@@ -22,7 +22,7 @@ import java.util.stream.Collectors;
 @Qualifier("UserServiceImpl")
 @Slf4j
 public class UserServiceImpl implements UserService {
-	UserStorage userStorage;
+	private UserStorage userStorage;
 
 	@Autowired
 	public UserServiceImpl(@Qualifier("InMemoryUserStorage") UserStorage storage) {
@@ -45,17 +45,13 @@ public class UserServiceImpl implements UserService {
 
 	@Override
 	public User getUser(int userId) {
-		return userStorage.get(userId).orElseThrow(
-				() -> new UserNotExistException("User with id " + userId + " isn't exist.")
-		);
+		return getUserByIdOrThrowException(userId);
 	}
 
 	@Override
 	public User updateUser(User user) {
 		int userId = user.getId();
-		userStorage.get(userId).orElseThrow(
-				() -> new UserNotExistException("User with id " + userId + " isn't exist.")
-		);
+		getUserByIdOrThrowException(userId);
 		return userStorage.update(user);
 	}
 
@@ -66,12 +62,8 @@ public class UserServiceImpl implements UserService {
 
 	@Override
 	public User addFriend(int userId, int friendId) {
-		User user = userStorage.get(userId).orElseThrow(
-				() -> new UserNotExistException("User with id " + userId + " isn't exist.")
-		);
-		User friend = userStorage.get(friendId).orElseThrow(
-				() -> new UserNotExistException("User with id " + friendId + " isn't exist.")
-		);
+		User user = getUserByIdOrThrowException(userId);
+		User friend = getUserByIdOrThrowException(friendId);
 		if (user.getFriends() == null)
 			user.setFriends(new HashSet<>());
 		if (friend.getFriends() == null)
@@ -83,13 +75,8 @@ public class UserServiceImpl implements UserService {
 
 	@Override
 	public User removeFriend(int userId, int friendId) {
-		User user = userStorage.get(userId).orElseThrow(
-				() -> new UserNotExistException("User with id " + userId + " isn't exist.")
-		);
-		User friend = userStorage.get(friendId).orElseThrow(
-				() -> new UserNotExistException("User with id " + friendId + " isn't exist.")
-		);
-
+		User user = getUserByIdOrThrowException(userId);
+		User friend = getUserByIdOrThrowException(friendId);
 		if (user.getFriends() == null || user.getFriends().isEmpty() || !user.getFriends().contains(friendId))
 			throw new UsersAreNotFriendsException("Users with id " + userId + " and " + friendId + " are not friends.");
 		user.getFriends().remove(friendId);
@@ -99,9 +86,7 @@ public class UserServiceImpl implements UserService {
 
 	@Override
 	public List<User> getFriends(int userId) {
-		User user = userStorage.get(userId).orElseThrow(
-				() -> new UserNotExistException("User with id " + userId + " isn't exist.")
-		);
+		User user = getUserByIdOrThrowException(userId);
 		Set<Integer> friends = user.getFriends();
 		if (friends == null || friends.isEmpty())
 			return new ArrayList<>();
@@ -110,12 +95,8 @@ public class UserServiceImpl implements UserService {
 
 	@Override
 	public List<User> getMutualFriends(int userId, int otherUserId) {
-		User user = userStorage.get(userId).orElseThrow(
-				() -> new UserNotExistException("User with id " + userId + " isn't exist.")
-		);
-		User otherUser = userStorage.get(otherUserId).orElseThrow(
-				() -> new UserNotExistException("User with id " + otherUserId + " isn't exist.")
-		);
+		User user = getUserByIdOrThrowException(userId);
+		User otherUser = getUserByIdOrThrowException(otherUserId);
 		Set<Integer> userFriends = user.getFriends();
 		Set<Integer> otherUserFriends = otherUser.getFriends();
 		if (userFriends == null || otherUserFriends == null || userFriends.isEmpty() || otherUserFriends.isEmpty())
@@ -132,5 +113,11 @@ public class UserServiceImpl implements UserService {
 			user.setName(user.getLogin());
 			log.debug("Set user's name on [{}]", user.getName());
 		}
+	}
+
+	private User getUserByIdOrThrowException(int userId) {
+		return userStorage.get(userId).orElseThrow(
+				() -> new UserNotExistException("User with id " + userId + " isn't exist.")
+		);
 	}
 }
