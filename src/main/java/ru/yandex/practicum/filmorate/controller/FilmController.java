@@ -1,64 +1,61 @@
 package ru.yandex.practicum.filmorate.controller;
 
 import lombok.extern.slf4j.Slf4j;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.web.bind.annotation.*;
 
-import ru.yandex.practicum.filmorate.exception.FilmAlreadyAddedException;
-import ru.yandex.practicum.filmorate.exception.FilmNotExistException;
 import ru.yandex.practicum.filmorate.model.Film;
+import ru.yandex.practicum.filmorate.service.film.FilmService;
 
 import javax.validation.Valid;
 
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 @Slf4j
 @RestController
 @RequestMapping("/films")
 public class FilmController {
-	private final Map<Integer, Film> films = new HashMap<>();
-	private int idCounter = 0;
+	private final FilmService filmService;
+
+	@Autowired
+	public FilmController(@Qualifier("FilmServiceImpl") FilmService filmService) {
+		this.filmService = filmService;
+	}
 
 	@PostMapping
 	public Film postFilm(@Valid @RequestBody Film film) {
-		log.info("Post [{}]", film.toString());
-		filmExistCheck(film);
-		addFilm(film);
-		log.info("Film posted successfully. Films size [{}]", films.size());
-		return film;
+		return filmService.addFilm(film);
 	}
 
 	@PutMapping
 	public Film putFilm(@Valid @RequestBody Film film) {
-		log.info("Put [{}]", film.toString());
-		int filmId = film.getId();
-		if (!films.containsKey(filmId))
-			throw new FilmNotExistException("Film with id " + filmId + " isn't exist.");
-		films.put(filmId, film);
-		log.info("Film put successfully.");
-		return film;
+		return filmService.updateFilm(film);
 	}
 
 	@GetMapping
 	public List<Film> getFilms() {
-		return new ArrayList<>(films.values());
+		return filmService.getFilms();
 	}
 
-	private void filmExistCheck(Film film) {
-		if (films.containsValue(film)) {
-			throw new FilmAlreadyAddedException("Film with name " + film.getName()
-					+ " and same description is already added.");
-		}
+	@GetMapping("/{id}")
+	public Film getFilm(@PathVariable("id") int filmId) {
+		return filmService.getFilm(filmId);
 	}
 
-	private void addFilm(Film film) {
-		setFilmId(film);
-		films.put(film.getId(), film);
+	@PutMapping("/{id}/like/{userId}")
+	public Film addLike(@PathVariable("id") int filmId, @PathVariable int userId) {
+		return filmService.addLike(filmId, userId);
 	}
 
-	private void setFilmId(Film film) {
-		film.setId(++idCounter);
+	@DeleteMapping("/{id}/like/{userId}")
+	public Film deleteLike(@PathVariable("id") int filmId, @PathVariable int userId) {
+		return filmService.removeLike(filmId, userId);
+	}
+
+	@GetMapping("/popular")
+	public List<Film> getPopularFilms(@RequestParam(name = "count", defaultValue = "10") String size) {
+		return filmService.getPopularFilms(Integer.parseInt(size));
 	}
 }
