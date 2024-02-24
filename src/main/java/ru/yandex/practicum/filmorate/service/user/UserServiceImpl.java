@@ -11,6 +11,7 @@ import ru.yandex.practicum.filmorate.exception.UserNotExistException;
 import ru.yandex.practicum.filmorate.exception.UsersAreNotFriendsException;
 import ru.yandex.practicum.filmorate.model.User;
 import ru.yandex.practicum.filmorate.storage.UserStorage;
+import ru.yandex.practicum.filmorate.storage.dao.user.UserFriendsDao;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -22,11 +23,14 @@ import java.util.stream.Collectors;
 @Qualifier("UserServiceImpl")
 @Slf4j
 public class UserServiceImpl implements UserService {
-	private UserStorage userStorage;
+	private final UserStorage userStorage;
+	private final UserFriendsDao friendsDao;
 
 	@Autowired
-	public UserServiceImpl(@Qualifier("InMemoryUserStorage") UserStorage storage) {
+	public UserServiceImpl(@Qualifier("UserDaoImpl") UserStorage storage,
+						   UserFriendsDao friendsDao) {
 		this.userStorage = storage;
+		this.friendsDao = friendsDao;
 	}
 
 	@Override
@@ -34,12 +38,7 @@ public class UserServiceImpl implements UserService {
 		setUserName(user);
 		if (userStorage.contains(user))
 			throw new UserAlreadyAddedException(user + " is already exist.");
-		if (userStorage.containsEmail(user))
-			throw new UserAlreadyAddedException("User with email " + user.getEmail() + " is already exist.");
-		if (userStorage.containsName(user))
-			throw new UserAlreadyAddedException("User with name " + user.getName() + " is already exist.");
-		if (userStorage.containsLogin(user))
-			throw new UserAlreadyAddedException("User with login " + user.getLogin() + " is already exist");
+
 		return userStorage.save(user);
 	}
 
@@ -51,7 +50,8 @@ public class UserServiceImpl implements UserService {
 	@Override
 	public User updateUser(User user) {
 		int userId = user.getId();
-		getUserByIdOrThrowException(userId);
+		if (!userStorage.contains(userId))
+			throw new UserNotExistException("User with id " + userId + " isn't exist.");
 		return userStorage.update(user);
 	}
 
@@ -70,6 +70,8 @@ public class UserServiceImpl implements UserService {
 			friend.setFriends(new HashSet<>());
 		user.getFriends().add(friendId);
 		friend.getFriends().add(userId);
+		friendsDao.add(userId, friendId);
+		friendsDao.add(friendId, userId);
 		return user;
 	}
 
@@ -81,30 +83,27 @@ public class UserServiceImpl implements UserService {
 			throw new UsersAreNotFriendsException("Users with id " + userId + " and " + friendId + " are not friends.");
 		user.getFriends().remove(friendId);
 		friend.getFriends().remove(userId);
+		friendsDao.remove(userId, friendId);
+		friendsDao.remove(friendId, userId);
 		return user;
 	}
 
 	@Override
 	public List<User> getFriends(int userId) {
-		User user = getUserByIdOrThrowException(userId);
-		Set<Integer> friends = user.getFriends();
-		if (friends == null || friends.isEmpty())
-			return new ArrayList<>();
+		if (!userStorage.contains(userId))
+			throw new UserNotExistException("User with id " + userId + " isn't exist.");
+		Set<Integer> friends = friendsDao.get(userId);
 		return userStorage.get(new ArrayList<>(friends));
 	}
 
 	@Override
 	public List<User> getMutualFriends(int userId, int otherUserId) {
-		User user = getUserByIdOrThrowException(userId);
-		User otherUser = getUserByIdOrThrowException(otherUserId);
-		Set<Integer> userFriends = user.getFriends();
-		Set<Integer> otherUserFriends = otherUser.getFriends();
-		if (userFriends == null || otherUserFriends == null || userFriends.isEmpty() || otherUserFriends.isEmpty())
-			return new ArrayList<>();
-		List<Integer> mutualFriends = userFriends.stream()
-				.filter(otherUserFriends::contains)
-				.collect(Collectors.toList());
-		return userStorage.get(mutualFriends);
+		if (!userStorage.contains(userId))
+			throw new UserNotExistException("User with id " + userId + " isn't exist.");
+		if (!userStorage.contains(otherUserId))
+			throw new UserNotExistException("User with id " + userId + " isn't exist.");
+		List<Integer> mutualFriends = friendsDao.getMutualFriend(userId, otherUserId);
+		return userStorage.get(new ArrayList<>(mutualFriends));
 	}
 
 	private void setUserName(User user) {

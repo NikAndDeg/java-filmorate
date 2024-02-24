@@ -6,27 +6,27 @@ import org.springframework.stereotype.Service;
 
 import ru.yandex.practicum.filmorate.exception.*;
 import ru.yandex.practicum.filmorate.model.Film;
-import ru.yandex.practicum.filmorate.model.User;
 import ru.yandex.practicum.filmorate.storage.FilmStorage;
 import ru.yandex.practicum.filmorate.storage.UserStorage;
+import ru.yandex.practicum.filmorate.storage.dao.film.FilmLikesDao;
 
-import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 @Qualifier("FilmServiceImpl")
 public class FilmServiceImpl implements FilmService {
-	private FilmStorage filmStorage;
-	private UserStorage userStorage;
+	private final FilmStorage filmStorage;
+	private final UserStorage userStorage;
+	private final FilmLikesDao likesDao;
 
 	@Autowired
 	public FilmServiceImpl(
-			@Qualifier("InMemoryFilmStorage") FilmStorage filmStorage,
-			@Qualifier("InMemoryUserStorage") UserStorage userStorage) {
+			@Qualifier("FilmDaoImpl") FilmStorage filmStorage,
+			@Qualifier("UserDaoImpl") UserStorage userStorage,
+			FilmLikesDao likesDao) {
 		this.filmStorage = filmStorage;
 		this.userStorage = userStorage;
+		this.likesDao = likesDao;
 	}
 
 	@Override
@@ -44,7 +44,8 @@ public class FilmServiceImpl implements FilmService {
 	@Override
 	public Film updateFilm(Film film) {
 		int filmId = film.getId();
-		getFilmByIdOrThrowException(filmId);
+		if (!filmStorage.contains(filmId))
+			throw new FilmNotExistException("Film with id " + filmId + " isn't exist.");
 		return filmStorage.update(film);
 	}
 
@@ -55,44 +56,30 @@ public class FilmServiceImpl implements FilmService {
 
 	@Override
 	public Film addLike(int filmId, int userId) {
-		getUserByIdOrThrowException(userId);
+		checkUserExistInStorage(userId);
 		Film film = getFilmByIdOrThrowException(filmId);
-		if (film.getLikes() == null) {
-			film.setLikes(new HashSet<>());
-		} else if (film.getLikes().contains(userId))
+		if (film.getLikes().contains(userId))
 			throw new LikeAlreadyAddedException("User already liked film.");
+		likesDao.add(filmId, userId);
 		film.getLikes().add(userId);
 		return film;
 	}
 
 	@Override
 	public Film removeLike(int filmId, int userId) {
-		getUserByIdOrThrowException(userId);
+		checkUserExistInStorage(userId);
 		Film film = getFilmByIdOrThrowException(filmId);
-		if (film.getLikes() == null) {
-			film.setLikes(new HashSet<>());
-		} else if (!film.getLikes().contains(userId))
+		if (!film.getLikes().contains(userId))
 			throw new LikeNotFoundException("Like not found.");
+		likesDao.remove(filmId, userId);
 		film.getLikes().remove(userId);
 		return film;
 	}
 
 	@Override
 	public List<Film> getPopularFilms(int size) {
-		List<Film> films = filmStorage.getAll();
-		if (films == null || films.isEmpty())
-			return new ArrayList<>();
-		return filmStorage.getAll().stream()
-				.sorted((f1, f2) -> {
-					if (f1.getLikes() == null)
-						return 1;
-					if (f2.getLikes() == null)
-						return -1;
-					return f2.getLikes().size() - f1.getLikes().size();
-						}
-				)
-				.limit(size)
-				.collect(Collectors.toList());
+		List<Integer> mostLikedFilmsId = likesDao.getMostLikedFilmsId(size);
+		return filmStorage.get(mostLikedFilmsId);
 	}
 
 	private Film getFilmByIdOrThrowException(int filmId) {
@@ -101,8 +88,8 @@ public class FilmServiceImpl implements FilmService {
 		);
 	}
 
-	private User getUserByIdOrThrowException(int userId) {
-		return userStorage.get(userId).orElseThrow(
+	private void checkUserExistInStorage(int userId) {
+		userStorage.get(userId).orElseThrow(
 				() -> new UserNotExistException("User with id " + userId + " isn't exist.")
 		);
 	}

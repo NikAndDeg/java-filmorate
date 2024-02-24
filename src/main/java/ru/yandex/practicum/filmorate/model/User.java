@@ -19,7 +19,6 @@ public class User {
 	private int id;
 	@Email
 	private String email;
-	@EqualsAndHashCode.Exclude
 	@LoginValidation
 	private String login;
 	@EqualsAndHashCode.Exclude
