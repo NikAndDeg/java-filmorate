@@ -9,11 +9,18 @@ import java.util.Set;
 
 public interface FilmGenresDAO {
 	void save(Set<FilmGenre> genres, int filmId);
+
 	Set<FilmGenre> getByFilmId(int filmId);
+
 	Map<Integer, Set<FilmGenre>> getByFilmsId(List<Integer> filmsId);
+
 	Map<Integer, Set<FilmGenre>> getAll();
+
 	Set<FilmGenre> get(Set<Integer> genresId);
+
 	Set<FilmGenre> getAllGenres();
+
 	Optional<FilmGenre> getGenre(int genreId);
+
 	void update(int filmId, Set<FilmGenre> genres);
 }

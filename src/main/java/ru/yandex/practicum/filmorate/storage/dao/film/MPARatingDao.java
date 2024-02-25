@@ -7,5 +7,6 @@ import java.util.Set;
 
 public interface MPARatingDao {
 	Set<MPARating> getAllMPARatings();
+	
 	Optional<MPARating> getMPARatingByRatingId(int mpaRatingId);
 }
