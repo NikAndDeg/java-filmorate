@@ -18,6 +18,7 @@ public class MPARatingDaoImpl implements MPARatingDao {
 	public MPARatingDaoImpl(JdbcTemplate jdbcTemplate) {
 		this.jdbcTemplate = jdbcTemplate;
 	}
+
 	@Override
 	public Set<MPARating> getAllMPARatings() {
 		String sql = "SELECT * FROM mpa_ratings;";
