@@ -69,9 +69,9 @@ public class UserServiceImpl implements UserService {
 		if (friend.getFriends() == null)
 			friend.setFriends(new HashSet<>());
 		user.getFriends().add(friendId);
-		friend.getFriends().add(userId);
+		//friend.getFriends().add(userId);
 		friendsDao.add(userId, friendId);
-		friendsDao.add(friendId, userId);
+		//friendsDao.add(friendId, userId);
 		return user;
 	}
 
@@ -82,9 +82,9 @@ public class UserServiceImpl implements UserService {
 		if (user.getFriends() == null || user.getFriends().isEmpty() || !user.getFriends().contains(friendId))
 			throw new UsersAreNotFriendsException("Users with id " + userId + " and " + friendId + " are not friends.");
 		user.getFriends().remove(friendId);
-		friend.getFriends().remove(userId);
+		//friend.getFriends().remove(userId);
 		friendsDao.remove(userId, friendId);
-		friendsDao.remove(friendId, userId);
+		//friendsDao.remove(friendId, userId);
 		return user;
 	}
 

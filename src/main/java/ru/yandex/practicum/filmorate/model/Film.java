@@ -31,4 +31,8 @@ public class Film {
 	private int duration;
 	@EqualsAndHashCode.Exclude
 	private Set<Integer> likes;
+	@EqualsAndHashCode.Exclude
+	private Set<FilmGenre> genres;
+	@EqualsAndHashCode.Exclude
+	private MPARating mpa;
 }

@@ -11,8 +11,7 @@ import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
 @SpringBootTest
-@Sql(scripts = "/test_schema.sql",
-		executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD)
+@Sql(scripts = "/test_schema.sql", executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD)
 class FilmLikesDaoImplTest {
 	@Autowired
 	private FilmLikesDaoImpl likesDao;

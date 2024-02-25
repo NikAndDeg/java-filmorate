@@ -6,11 +6,17 @@ import org.springframework.stereotype.Service;
 
 import ru.yandex.practicum.filmorate.exception.*;
 import ru.yandex.practicum.filmorate.model.Film;
+import ru.yandex.practicum.filmorate.model.FilmGenre;
+import ru.yandex.practicum.filmorate.model.MPARating;
 import ru.yandex.practicum.filmorate.storage.FilmStorage;
 import ru.yandex.practicum.filmorate.storage.UserStorage;
+import ru.yandex.practicum.filmorate.storage.dao.film.FilmGenresDAO;
 import ru.yandex.practicum.filmorate.storage.dao.film.FilmLikesDao;
+import ru.yandex.practicum.filmorate.storage.dao.film.MPARatingDao;
 
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 @Qualifier("FilmServiceImpl")
@@ -18,21 +24,30 @@ public class FilmServiceImpl implements FilmService {
 	private final FilmStorage filmStorage;
 	private final UserStorage userStorage;
 	private final FilmLikesDao likesDao;
+	private final FilmGenresDAO genresDao;
+	private final MPARatingDao ratingDao;
 
 	@Autowired
 	public FilmServiceImpl(
 			@Qualifier("FilmDaoImpl") FilmStorage filmStorage,
 			@Qualifier("UserDaoImpl") UserStorage userStorage,
-			FilmLikesDao likesDao) {
+			FilmLikesDao likesDao,
+			FilmGenresDAO genresDao,
+			MPARatingDao ratingDao
+	) {
 		this.filmStorage = filmStorage;
 		this.userStorage = userStorage;
 		this.likesDao = likesDao;
+		this.genresDao = genresDao;
+		this.ratingDao = ratingDao;
 	}
 
 	@Override
 	public Film addFilm(Film film) {
 		if (filmStorage.contains(film))
 			throw new FilmAlreadyAddedException(film + " already added.");
+		setGenresNamesToFilm(film);
+		setMPARatingToFilm(film);
 		return filmStorage.save(film);
 	}
 
@@ -46,6 +61,7 @@ public class FilmServiceImpl implements FilmService {
 		int filmId = film.getId();
 		if (!filmStorage.contains(filmId))
 			throw new FilmNotExistException("Film with id " + filmId + " isn't exist.");
+		setGenresNamesToFilm(film);
 		return filmStorage.update(film);
 	}
 
@@ -92,5 +108,29 @@ public class FilmServiceImpl implements FilmService {
 		userStorage.get(userId).orElseThrow(
 				() -> new UserNotExistException("User with id " + userId + " isn't exist.")
 		);
+	}
+
+	private void setGenresNamesToFilm(Film film) {
+		Set<FilmGenre> filmGenres = film.getGenres();
+		if (filmGenres == null || filmGenres.isEmpty())
+			return;
+		Set<FilmGenre> genresFromDb = genresDao.get(
+				filmGenres.stream()
+						.map(FilmGenre::getId)
+						.collect(Collectors.toSet())
+		);
+		if (filmGenres.size() != genresFromDb.size())
+			throw new FilmGenreException("Incorrect genres.");
+		film.setGenres(genresFromDb);
+	}
+
+	private void setMPARatingToFilm(Film film) {
+		if (film.getMpa() == null)
+			return;
+		int mpaRatingId = film.getMpa().getId();
+		MPARating rating = ratingDao.getMPARatingByRatingId(mpaRatingId).orElseThrow(
+				() -> new MPARatingException("")
+		);
+		film.setMpa(rating);
 	}
 }

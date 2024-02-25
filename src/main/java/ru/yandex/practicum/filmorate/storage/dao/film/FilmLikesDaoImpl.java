@@ -20,13 +20,14 @@ public class FilmLikesDaoImpl implements FilmLikesDao {
 	@Override
 	public void save(int filmId, Set<Integer> likes) {
 		String sql = "INSERT INTO films_likes (film_id, user_id) VALUES (" + filmId + ", ?);";
-
-		if (likes == null)
+		if (likes == null || likes.isEmpty())
 			return;
-
-		jdbc.batchUpdate(sql, likes, likes.size(), (ps, integer) -> {
-			ps.setInt(1, integer);
-		});
+		jdbc.batchUpdate(
+				sql,
+				likes,
+				likes.size(),
+				(ps, integer) -> ps.setInt(1, integer)
+		);
 	}
 
 	@Override
@@ -87,12 +88,9 @@ public class FilmLikesDaoImpl implements FilmLikesDao {
 
 	private Map<Integer, Set<Integer>> getFilmsLikes(SqlRowSet rowSet) {
 		Map<Integer, Set<Integer>> filmsLikes = new HashMap<>();
-
 		if (!rowSet.isBeforeFirst())
 			return filmsLikes;
-
 		rowSet.next();
-
 		do {
 			int filmId = rowSet.getInt("film_id");
 			int userId = rowSet.getInt("user_id");
@@ -100,7 +98,6 @@ public class FilmLikesDaoImpl implements FilmLikesDao {
 				filmsLikes.put(filmId, new HashSet<>());
 			filmsLikes.get(filmId).add(userId);
 		} while (rowSet.next());
-
 		return filmsLikes;
 	}
 }
