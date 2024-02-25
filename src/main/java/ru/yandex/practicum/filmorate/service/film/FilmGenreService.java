@@ -6,5 +6,6 @@ import java.util.Set;
 
 public interface FilmGenreService {
 	public Set<FilmGenre> getAllFilmGenres();
+
 	public FilmGenre getFilmGenreById(int genreId);
 }
