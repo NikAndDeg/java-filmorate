@@ -13,10 +13,8 @@ import ru.yandex.practicum.filmorate.model.User;
 import ru.yandex.practicum.filmorate.storage.UserStorage;
 import ru.yandex.practicum.filmorate.storage.dao.user.UserFriendsDao;
 
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 @Qualifier("UserServiceImpl")
@@ -37,7 +35,6 @@ public class UserServiceImpl implements UserService {
 		setUserName(user);
 		if (userStorage.contains(user))
 			throw new UserAlreadyAddedException(user + " is already exist.");
-
 		return userStorage.save(user);
 	}
 
@@ -56,7 +53,9 @@ public class UserServiceImpl implements UserService {
 
 	@Override
 	public List<User> getUsers() {
-		return userStorage.getAll();
+		List<User> users = userStorage.getAll();
+		addAllFriendsToAllUsers(users);
+		return users;
 	}
 
 	@Override
@@ -68,22 +67,17 @@ public class UserServiceImpl implements UserService {
 		if (friend.getFriends() == null)
 			friend.setFriends(new HashSet<>());
 		user.getFriends().add(friendId);
-		//friend.getFriends().add(userId);
 		friendsDao.add(userId, friendId);
-		//friendsDao.add(friendId, userId);
 		return user;
 	}
 
 	@Override
 	public User removeFriend(int userId, int friendId) {
 		User user = getUserByIdOrThrowException(userId);
-		User friend = getUserByIdOrThrowException(friendId);
 		if (user.getFriends() == null || user.getFriends().isEmpty() || !user.getFriends().contains(friendId))
 			throw new UsersAreNotFriendsException("Users with id " + userId + " and " + friendId + " are not friends.");
 		user.getFriends().remove(friendId);
-		//friend.getFriends().remove(userId);
 		friendsDao.remove(userId, friendId);
-		//friendsDao.remove(friendId, userId);
 		return user;
 	}
 
@@ -91,8 +85,10 @@ public class UserServiceImpl implements UserService {
 	public List<User> getFriends(int userId) {
 		if (!userStorage.contains(userId))
 			throw new UserNotExistException("User with id " + userId + " isn't exist.");
-		Set<Integer> friends = friendsDao.get(userId);
-		return userStorage.get(new ArrayList<>(friends));
+		List<Integer> friendsId = new ArrayList<>(friendsDao.get(userId));
+		List<User> users = userStorage.get(friendsId);
+		addFriendsToUser(users);
+		return users;
 	}
 
 	@Override
@@ -102,7 +98,9 @@ public class UserServiceImpl implements UserService {
 		if (!userStorage.contains(otherUserId))
 			throw new UserNotExistException("User with id " + userId + " isn't exist.");
 		List<Integer> mutualFriends = friendsDao.getMutualFriend(userId, otherUserId);
-		return userStorage.get(new ArrayList<>(mutualFriends));
+		List<User> users = userStorage.get(mutualFriends);
+		addFriendsToUser(users);
+		return users;
 	}
 
 	private void setUserName(User user) {
@@ -114,8 +112,37 @@ public class UserServiceImpl implements UserService {
 	}
 
 	private User getUserByIdOrThrowException(int userId) {
-		return userStorage.get(userId).orElseThrow(
+		User user = userStorage.get(userId).orElseThrow(
 				() -> new UserNotExistException("User with id " + userId + " isn't exist.")
 		);
+		Set<Integer> friends = friendsDao.get(userId);
+		user.setFriends(friends);
+		return user;
+	}
+
+	private void addFriendsToUser(List<User> users) {
+		Map<Integer, Set<Integer>> usersFriends = friendsDao.get(
+				users.stream().map(User::getId).collect(Collectors.toList())
+		);
+		for (User user : users) {
+			int userId = user.getId();
+			Set<Integer> friends = usersFriends.get(userId);
+			if (friends != null)
+				user.setFriends(friends);
+			else
+				user.setFriends(new HashSet<>());
+		}
+	}
+
+	private void addAllFriendsToAllUsers(List<User> users) {
+		Map<Integer, Set<Integer>> usersFriends = friendsDao.getAll();
+		for (User user : users) {
+			int userId = user.getId();
+			Set<Integer> friends = usersFriends.get(userId);
+			if (friends != null)
+				user.setFriends(friends);
+			else
+				user.setFriends(new HashSet<>());
+		}
 	}
 }

@@ -27,5 +27,5 @@ public class User {
 	@BirthDateValidation
 	private LocalDate birthday;
 	@EqualsAndHashCode.Exclude
-	Set<Integer> friends;
+	private Set<Integer> friends;
 }

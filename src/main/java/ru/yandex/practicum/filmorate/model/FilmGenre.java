@@ -10,7 +10,7 @@ import javax.validation.constraints.Positive;
 @Builder
 public class FilmGenre {
 	@Positive
-	int id;
+	private int id;
 	@EqualsAndHashCode.Exclude
-	String name;
+	private String name;
 }

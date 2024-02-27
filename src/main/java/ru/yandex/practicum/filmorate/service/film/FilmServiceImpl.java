@@ -14,7 +14,9 @@ import ru.yandex.practicum.filmorate.storage.dao.film.FilmGenresDAO;
 import ru.yandex.practicum.filmorate.storage.dao.film.FilmLikesDao;
 import ru.yandex.practicum.filmorate.storage.dao.film.MPARatingDao;
 
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -48,7 +50,10 @@ public class FilmServiceImpl implements FilmService {
 			throw new FilmAlreadyAddedException(film + " already added.");
 		setGenresNamesToFilm(film);
 		setMPARatingToFilm(film);
-		return filmStorage.save(film);
+		film = filmStorage.save(film);
+		saveFilmLikes(film);
+		saveFilmGenres(film);
+		return film;
 	}
 
 	@Override
@@ -62,12 +67,19 @@ public class FilmServiceImpl implements FilmService {
 		if (!filmStorage.contains(filmId))
 			throw new FilmNotExistException("Film with id " + filmId + " isn't exist.");
 		setGenresNamesToFilm(film);
-		return filmStorage.update(film);
+		genresDao.update(film.getId(), film.getGenres());
+		film = filmStorage.update(film);
+		addLikesToFilm(film);
+		addGenresToFilm(film);
+		return film;
 	}
 
 	@Override
 	public List<Film> getFilms() {
-		return filmStorage.getAll();
+		List<Film> films = filmStorage.getAll();
+		addLikesToFilms(films, likesDao.getAll());
+		addGenresToFilms(films, genresDao.getAll());
+		return films;
 	}
 
 	@Override
@@ -95,13 +107,29 @@ public class FilmServiceImpl implements FilmService {
 	@Override
 	public List<Film> getPopularFilms(int size) {
 		List<Integer> mostLikedFilmsId = likesDao.getMostLikedFilmsId(size);
-		return filmStorage.get(mostLikedFilmsId);
+		List<Film> films = filmStorage.get(mostLikedFilmsId);
+		addLikesToFilms(films, likesDao.get(mostLikedFilmsId));
+		addGenresToFilms(films, genresDao.getByFilmsId(mostLikedFilmsId));
+		return films;
 	}
 
 	private Film getFilmByIdOrThrowException(int filmId) {
-		return filmStorage.get(filmId).orElseThrow(
+		Film film = filmStorage.get(filmId).orElseThrow(
 				() -> new FilmNotExistException("Film with id " + filmId + " isn't exist.")
 		);
+		addLikesToFilm(film);
+		addGenresToFilm(film);
+		return film;
+	}
+
+	private void addLikesToFilm(Film film) {
+		Set<Integer> likes = likesDao.get(film.getId());
+		film.setLikes(likes);
+	}
+
+	private void addGenresToFilm(Film film) {
+		Set<FilmGenre> genres = genresDao.getByFilmId(film.getId());
+		film.setGenres(genres);
 	}
 
 	private void checkUserExistInStorage(int userId) {
@@ -132,5 +160,35 @@ public class FilmServiceImpl implements FilmService {
 				() -> new MPARatingException("")
 		);
 		film.setMpa(rating);
+	}
+
+	private void saveFilmLikes(Film film) {
+		likesDao.save(film.getId(), film.getLikes());
+	}
+
+	private void saveFilmGenres(Film film) {
+		genresDao.save(film.getGenres(), film.getId());
+	}
+
+	private void addLikesToFilms(List<Film> films, Map<Integer, Set<Integer>> filmsLikes) {
+		for (Film film : films) {
+			int filmId = film.getId();
+			Set<Integer> likes = filmsLikes.get(filmId);
+			if (likes != null)
+				film.setLikes(likes);
+			else
+				film.setLikes(new HashSet<>());
+		}
+	}
+
+	private void addGenresToFilms(List<Film> films, Map<Integer, Set<FilmGenre>> filmsGenres) {
+		for (Film film : films) {
+			int filmId = film.getId();
+			Set<FilmGenre> genres = filmsGenres.get(filmId);
+			if (genres != null)
+				film.setGenres(genres);
+			else
+				film.setGenres(new HashSet<>());
+		}
 	}
 }

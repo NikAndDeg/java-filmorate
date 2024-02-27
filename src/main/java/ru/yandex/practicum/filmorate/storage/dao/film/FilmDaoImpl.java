@@ -7,7 +7,6 @@ import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.stereotype.Repository;
 import ru.yandex.practicum.filmorate.model.Film;
-import ru.yandex.practicum.filmorate.model.FilmGenre;
 import ru.yandex.practicum.filmorate.model.MPARating;
 
 import java.sql.PreparedStatement;
@@ -20,21 +19,10 @@ import java.util.*;
 @Qualifier("FilmDaoImpl")
 public class FilmDaoImpl implements FilmDao {
 	private final JdbcTemplate jdbc;
-	private final FilmLikesDao likesDao;
-	private final FilmGenresDAO genresDao;
-	private final MPARatingDao ratingDao;
 
 	@Autowired
-	public FilmDaoImpl(
-			JdbcTemplate jdbc,
-			FilmLikesDao likesDao,
-			FilmGenresDAO genresDao,
-			MPARatingDao ratingDao
-	) {
+	public FilmDaoImpl(JdbcTemplate jdbc) {
 		this.jdbc = jdbc;
-		this.likesDao = likesDao;
-		this.genresDao = genresDao;
-		this.ratingDao = ratingDao;
 	}
 
 	@Override
@@ -43,73 +31,63 @@ public class FilmDaoImpl implements FilmDao {
 				"INSERT INTO films (film_name, description, release_date, duration, mpa_rating_id) " +
 						"VALUES (?, ?, ?, ?, ?);";
 		saveFilmAndSetId(sql, film);
-		saveFilmLikes(film);
-		saveFilmGenres(film);
-
 		return film;
 	}
 
 	@Override
 	public Optional<Film> get(int filmId) {
 		String sql = "SELECT " +
-				"f.FILM_ID, " +
-				"f.FILM_NAME, " +
-				"f.DESCRIPTION, " +
-				"f.RELEASE_DATE, " +
-				"f.DURATION, " +
-				"f.MPA_RATING_ID, " +
-				"mr.MPA_RATING_NAME " +
-				"FROM FILMS f " +
-				"LEFT JOIN MPA_RATINGS mr " +
-				"ON f.MPA_RATING_ID = mr.MPA_RATING_ID " +
-				"WHERE f.FILM_ID = ?;";
+				"f.film_id, " +
+				"f.film_name, " +
+				"f.description, " +
+				"f.release_date, " +
+				"f.duration, " +
+				"f.mpa_rating_id, " +
+				"mr.mpa_rating_name " +
+				"FROM films f " +
+				"LEFT JOIN mpa_ratings mr " +
+				"ON f.mpa_rating_id = mr.mpa_rating_id " +
+				"WHERE f.film_id = ?;";
 		List<Film> films = jdbc.query(sql, this::filmMapRow, filmId);
 		if (films.isEmpty())
 			return Optional.empty();
 		Film film = films.get(0);
-		addLikesToFilm(film);
-		addGenresToFilm(film);
 		return Optional.of(film);
 	}
 
 	@Override
 	public List<Film> get(List<Integer> filmsId) {
 		String sql = "SELECT " +
-				"f.FILM_ID, " +
-				"f.FILM_NAME, " +
-				"f.DESCRIPTION, " +
-				"f.RELEASE_DATE, " +
-				"f.DURATION, " +
-				"f.MPA_RATING_ID, " +
-				"mr.MPA_RATING_NAME " +
-				"FROM FILMS f " +
-				"LEFT JOIN MPA_RATINGS mr " +
-				"ON f.MPA_RATING_ID = mr.MPA_RATING_ID " +
-				"WHERE FILM_ID IN (%s);";
+				"f.film_id, " +
+				"f.film_name, " +
+				"f.description, " +
+				"f.release_date, " +
+				"f.duration, " +
+				"f.mpa_rating_id, " +
+				"mr.mpa_rating_name " +
+				"FROM films f " +
+				"LEFT JOIN mpa_ratings mr " +
+				"ON f.mpa_rating_id = mr.mpa_rating_id " +
+				"WHERE film_id IN (%s);";
 		String inSql = String.join(",", Collections.nCopies(filmsId.size(), "?"));
-		List<Film> films = jdbc.query(String.format(sql, inSql), this::filmMapRow, filmsId.toArray());
-		addLikesToFilms(films, likesDao.get(filmsId));
-		addGenresToFilms(films, genresDao.getByFilmsId(filmsId));
-		return films;
+
+		return jdbc.query(String.format(sql, inSql), this::filmMapRow, filmsId.toArray());
 	}
 
 	@Override
 	public List<Film> getAll() {
 		String sql = "SELECT " +
-				"f.FILM_ID, " +
-				"f.FILM_NAME, " +
-				"f.DESCRIPTION, " +
-				"f.RELEASE_DATE, " +
-				"f.DURATION, " +
-				"f.MPA_RATING_ID, " +
-				"mr.MPA_RATING_NAME " +
-				"FROM FILMS f " +
-				"LEFT JOIN MPA_RATINGS mr " +
-				"ON f.MPA_RATING_ID = mr.MPA_RATING_ID;";
-		List<Film> films = jdbc.query(sql, this::filmMapRow);
-		addLikesToFilms(films, likesDao.getAll());
-		addGenresToFilms(films, genresDao.getAll());
-		return films;
+				"f.film_id, " +
+				"f.film_name, " +
+				"f.description, " +
+				"f.release_date, " +
+				"f.duration, " +
+				"f.mpa_rating_id, " +
+				"mr.mpa_rating_name " +
+				"FROM films f " +
+				"LEFT JOIN mpa_ratings mr " +
+				"ON f.mpa_rating_id = mr.mpa_rating_id;";
+		return jdbc.query(sql, this::filmMapRow);
 	}
 
 	@Override
@@ -138,7 +116,6 @@ public class FilmDaoImpl implements FilmDao {
 			ps.setInt(5, film.getMpa().getId());
 			ps.setInt(6, film.getId());
 		});
-		genresDao.update(film.getId(), film.getGenres());
 		return get(film.getId()).get();
 	}
 
@@ -178,18 +155,6 @@ public class FilmDaoImpl implements FilmDao {
 				.build();
 	}
 
-	private void addLikesToFilms(List<Film> films, Map<Integer, Set<Integer>> filmsLikes) {
-		for (Film film : films) {
-			int filmId = film.getId();
-			Set<Integer> likes = filmsLikes.get(filmId);
-			if (likes != null)
-				film.setLikes(likes);
-			else
-				film.setLikes(new HashSet<>());
-		}
-	}
-
-
 	private void saveFilmAndSetId(String sql, Film film) {
 		KeyHolder keyHolder = new GeneratedKeyHolder();
 		jdbc.update(connection -> {
@@ -202,34 +167,5 @@ public class FilmDaoImpl implements FilmDao {
 			return ps;
 		}, keyHolder);
 		film.setId((int) keyHolder.getKey());
-	}
-
-	private void saveFilmLikes(Film film) {
-		likesDao.save(film.getId(), film.getLikes());
-	}
-
-	private void saveFilmGenres(Film film) {
-		genresDao.save(film.getGenres(), film.getId());
-	}
-
-	private void addLikesToFilm(Film film) {
-		Set<Integer> likes = likesDao.get(film.getId());
-		film.setLikes(likes);
-	}
-
-	private void addGenresToFilm(Film film) {
-		Set<FilmGenre> genres = genresDao.getByFilmId(film.getId());
-		film.setGenres(genres);
-	}
-
-	private void addGenresToFilms(List<Film> films, Map<Integer, Set<FilmGenre>> filmsGenres) {
-		for (Film film : films) {
-			int filmId = film.getId();
-			Set<FilmGenre> genres = filmsGenres.get(filmId);
-			if (genres != null)
-				film.setGenres(genres);
-			else
-				film.setGenres(new HashSet<>());
-		}
 	}
 }

@@ -18,12 +18,10 @@ import java.util.*;
 @Qualifier("UserDaoImpl")
 public class UserDaoImpl implements UserDao {
 	private final JdbcTemplate jdbc;
-	private final UserFriendsDao friendsDao;
 
 	@Autowired
-	public UserDaoImpl(JdbcTemplate jdbc, UserFriendsDao friendsDao) {
+	public UserDaoImpl(JdbcTemplate jdbc) {
 		this.jdbc = jdbc;
-		this.friendsDao = friendsDao;
 	}
 
 	@Override
@@ -57,45 +55,28 @@ public class UserDaoImpl implements UserDao {
 			return Optional.empty();
 
 		User user = users.get(0);
-		Set<Integer> friends = friendsDao.get(userId);
-		user.setFriends(friends);
-
 		return Optional.of(user);
 	}
 
 	@Override
 	public List<User> get(List<Integer> usersId) {
 		String sql = "SELECT * FROM users WHERE user_id IN (%s);";
-
 		String inSql = String.join(",", Collections.nCopies(usersId.size(), "?"));
-
-		List<User> users = jdbc.query(String.format(sql, inSql), this::userMapRow, usersId.toArray());
-
-		Map<Integer, Set<Integer>> usersFriends = friendsDao.get(usersId);
-
-		return addFriendsToUser(users, usersFriends);
+		return jdbc.query(String.format(sql, inSql), this::userMapRow, usersId.toArray());
 	}
 
 	@Override
 	public List<User> getAll() {
 		String sql = "SELECT * FROM users;";
-
-		List<User> users = jdbc.query(sql, this::userMapRow);
-
-		Map<Integer, Set<Integer>> usersFriends = friendsDao.getAll();
-
-		return addFriendsToUser(users, usersFriends);
+		return jdbc.query(sql, this::userMapRow);
 	}
 
 	@Override
 	public Optional<User> remove(int userId) {
 		String sql = "DELETE FROM users HERE user_id = ?;";
-
 		Optional<User> user = get(userId);
-
 		if (user.isPresent())
 			jdbc.update(sql, userId);
-
 		return user;
 	}
 
@@ -141,18 +122,5 @@ public class UserDaoImpl implements UserDao {
 				.name(rs.getString("user_name"))
 				.birthday(rs.getDate("birthday").toLocalDate())
 				.build();
-	}
-
-	private List<User> addFriendsToUser(List<User> users, Map<Integer, Set<Integer>> usersFriends) {
-		for (User user : users) {
-			int userId = user.getId();
-			Set<Integer> friends = usersFriends.get(userId);
-			if (friends != null)
-				user.setFriends(friends);
-			else
-				user.setFriends(new HashSet<>());
-		}
-
-		return users;
 	}
 }

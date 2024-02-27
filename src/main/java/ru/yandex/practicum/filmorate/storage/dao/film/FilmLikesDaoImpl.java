@@ -9,7 +9,6 @@ import java.util.*;
 
 @Repository
 public class FilmLikesDaoImpl implements FilmLikesDao {
-
 	private final JdbcTemplate jdbc;
 
 	@Autowired
