@@ -43,6 +43,7 @@ class MPARatingDaoImplTest {
 					.name("NC-17")
 					.build()
 	);
+
 	@BeforeEach
 	void createMPARatingDao() {
 		mpaRatingDao = new MPARatingDaoImpl(jdbc);
