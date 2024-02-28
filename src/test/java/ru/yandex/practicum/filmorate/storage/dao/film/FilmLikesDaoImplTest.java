@@ -102,6 +102,6 @@ class FilmLikesDaoImplTest {
 		jdbc.update("INSERT INTO films_likes (film_id, user_id) VALUES (2, 2);");
 		List<Integer> filmsId = likesDao.getMostLikedFilmsId(3);
 		System.out.println(filmsId);
-		assertArrayEquals(List.of(2, 1 , 3).toArray(), filmsId.toArray());
+		assertArrayEquals(List.of(2, 1, 3).toArray(), filmsId.toArray());
 	}
 }
