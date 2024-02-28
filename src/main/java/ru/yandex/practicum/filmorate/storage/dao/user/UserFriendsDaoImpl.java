@@ -93,9 +93,9 @@ public class UserFriendsDaoImpl implements UserFriendsDao {
 		do {
 			int userId = rowSet.getInt("user_id");
 			int friendId = rowSet.getInt("friend_id");
-			if (!usersFriends.containsKey(friendId))
-				usersFriends.put(friendId, new HashSet<>());
-			usersFriends.get(friendId).add(friendId);
+			if (!usersFriends.containsKey(userId))
+				usersFriends.put(userId, new HashSet<>());
+			usersFriends.get(userId).add(friendId);
 		} while (rowSet.next());
 
 		return usersFriends;

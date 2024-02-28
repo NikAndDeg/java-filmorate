@@ -1,97 +1,107 @@
 package ru.yandex.practicum.filmorate.storage.dao.film;
 
+import lombok.RequiredArgsConstructor;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.autoconfigure.jdbc.JdbcTest;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.jdbc.Sql;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
-@SpringBootTest
+
+@JdbcTest
 @Sql(scripts = "/test_schema.sql", executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD)
+@RequiredArgsConstructor(onConstructor_ = @Autowired)
 class FilmLikesDaoImplTest {
-	@Autowired
+	private final JdbcTemplate jdbc;
 	private FilmLikesDaoImpl likesDao;
 
-	@Test
-	void get_most_liked_films() {
-		likesDao.add(1, 3);
-		likesDao.add(1, 2);
-
-		likesDao.add(2, 1);
-		likesDao.add(2, 2);
-		likesDao.add(2, 3);
-
-		likesDao.add(3, 1);
-
-		System.out.println(likesDao.getMostLikedFilmsId(3));
+	@BeforeEach
+	void createLikesDao() {
+		likesDao = new FilmLikesDaoImpl(jdbc);
 	}
 
 	@Test
-	void remove_like() {
-		likesDao.add(1, 3);
-		likesDao.add(1, 2);
-		likesDao.add(1, 1);
-
-		likesDao.remove(1, 3);
-
-		assertArrayEquals(List.of(1, 2).toArray(), likesDao.get(1).toArray());
+	void save_likes_test() {
+		likesDao.save(4, Set.of(1, 2, 3, 4));
+		List<Integer> actualLikes = jdbc.query(
+						"SELECT * FROM films_likes WHERE film_id = 4;",
+						(rs, rowNum) -> rs.getInt("user_id")
+						);
+		List<Integer> expectedLikes = List.of(1, 2, 3, 4);
+		assertArrayEquals(expectedLikes.toArray(), actualLikes.toArray());
 	}
 
 	@Test
-	void get_likes_of_films_list() {
-		likesDao.add(1, 3);
-		likesDao.add(1, 2);
-
-		likesDao.add(2, 1);
-		likesDao.add(2, 2);
-		likesDao.add(2, 3);
-
-		likesDao.add(3, 1);
-
-		Map<Integer, Set<Integer>> filmsLikes = likesDao.get(List.of(2, 3));
-
-		assertArrayEquals(List.of(1, 2, 3).toArray(), filmsLikes.get(2).toArray());
-		assertArrayEquals(List.of(1).toArray(), filmsLikes.get(3).toArray());
+	void get_likes_by_film_id_test() {
+		List<Integer> actualLikes = new ArrayList<>(likesDao.get(1));
+		List<Integer> expectedLikes = List.of(2, 3);
+		assertArrayEquals(expectedLikes.toArray(), actualLikes.toArray());
 	}
 
 	@Test
-	void save_likes() {
-		likesDao.save(2, Set.of(2, 3));
-		assertArrayEquals(List.of(2, 3).toArray(), likesDao.get(2).toArray());
+	void get_likes_by_films_id_list_test() {
+		Map<Integer, Set<Integer>> actualLikes = likesDao.get(List.of(1, 3));
+		List<Integer> firstActualLikes = new ArrayList<>(actualLikes.get(1));
+		List<Integer> secondActualLikes = new ArrayList<>(actualLikes.get(3));
+
+		List<Integer> firstExpectedLikes = List.of(2, 3);
+		List<Integer> secondExpectedLikes = List.of(1);
+
+		assertArrayEquals(firstExpectedLikes.toArray(), firstActualLikes.toArray());
+		assertArrayEquals(secondExpectedLikes.toArray(), secondActualLikes.toArray());
 	}
 
 	@Test
-	void add_and_get_likes() {
-		likesDao.add(1, 3);
-		likesDao.add(1, 2);
-		assertArrayEquals(List.of(2, 3).toArray(), likesDao.get(1).toArray());
+	void get_all_test() {
+		Map<Integer, Set<Integer>> actualLikes = likesDao.getAll();
+		List<Integer> firstActualLikes = new ArrayList<>(actualLikes.get(1));
+		List<Integer> secondActualLikes = new ArrayList<>(actualLikes.get(3));
+		List<Integer> thirdActualLikes = new ArrayList<>(actualLikes.get(2));
+
+		List<Integer> firstExpectedLikes = List.of(2, 3);
+		List<Integer> secondExpectedLikes = List.of(1);
+		List<Integer> thirdExpectedLikes = List.of(1, 3);
+
+		assertArrayEquals(firstExpectedLikes.toArray(), firstActualLikes.toArray());
+		assertArrayEquals(secondExpectedLikes.toArray(), secondActualLikes.toArray());
+		assertArrayEquals(thirdExpectedLikes.toArray(), thirdActualLikes.toArray());
+		assertArrayEquals(List.of(1, 2, 3).toArray(), actualLikes.keySet().toArray());
 	}
 
 	@Test
-	void get_empty_likes() {
-		assertTrue(likesDao.get(1).isEmpty());
+	void add_like_test() {
+		likesDao.add(4, 1);
+		List<Integer> actualLikes = jdbc.query(
+				"SELECT * FROM films_likes WHERE film_id = 4;",
+				(rs, rowNum) -> rs.getInt("user_id")
+		);
+		List<Integer> expectedLikes = List.of(1);
+		assertArrayEquals(expectedLikes.toArray(), actualLikes.toArray());
 	}
 
 	@Test
-	void get_all_likes() {
-		likesDao.add(1, 3);
-		likesDao.add(1, 2);
+	void remove_like_test() {
+		likesDao.remove(1, 2);
+		List<Integer> actualLikes = jdbc.query(
+				"SELECT * FROM films_likes WHERE film_id = 1;",
+				(rs, rowNum) -> rs.getInt("user_id")
+		);
+		List<Integer> expectedLikes = List.of(3);
+		assertArrayEquals(expectedLikes.toArray(), actualLikes.toArray());
+	}
 
-		likesDao.add(2, 1);
-		likesDao.add(2, 2);
-		likesDao.add(2, 3);
-
-		likesDao.add(3, 1);
-
-
-		Map<Integer, Set<Integer>> filmsLikes = likesDao.getAll();
-
-		assertArrayEquals(List.of(2, 3).toArray(), filmsLikes.get(1).toArray());
-		assertArrayEquals(List.of(1, 2, 3).toArray(), filmsLikes.get(2).toArray());
-		assertArrayEquals(List.of(1).toArray(), filmsLikes.get(3).toArray());
+	@Test
+	void get_most_liked_films_test() {
+		jdbc.update("INSERT INTO films_likes (film_id, user_id) VALUES (2, 2);");
+		List<Integer> filmsId = likesDao.getMostLikedFilmsId(3);
+		System.out.println(filmsId);
+		assertArrayEquals(List.of(2, 1 ,3).toArray(), filmsId.toArray());
 	}
 }

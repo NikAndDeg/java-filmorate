@@ -73,7 +73,7 @@ public class UserDaoImpl implements UserDao {
 
 	@Override
 	public Optional<User> remove(int userId) {
-		String sql = "DELETE FROM users HERE user_id = ?;";
+		String sql = "DELETE FROM users WHERE user_id = ?;";
 		Optional<User> user = get(userId);
 		if (user.isPresent())
 			jdbc.update(sql, userId);
