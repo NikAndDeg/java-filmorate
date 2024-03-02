@@ -18,17 +18,21 @@ import java.util.Set;
 public class Film {
 	@EqualsAndHashCode.Exclude
 	private int id;
-	@NotBlank
-	@Size(max = 200)
+	@NotBlank(message = "must not be blank")
+	@Size(max = 200, message = "size must be between 0 and 200")
 	private String name;
-	@Size(max = 200)
+	@Size(max = 200, message = "size must be between 0 and 200")
 	private String description;
 	@EqualsAndHashCode.Exclude
 	@ReleaseDateValidation
 	private LocalDate releaseDate;
 	@EqualsAndHashCode.Exclude
-	@Positive
+	@Positive(message = "must be greater than 0")
 	private int duration;
 	@EqualsAndHashCode.Exclude
 	private Set<Integer> likes;
+	@EqualsAndHashCode.Exclude
+	private Set<FilmGenre> genres;
+	@EqualsAndHashCode.Exclude
+	private MPARating mpa;
 }

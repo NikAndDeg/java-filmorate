@@ -19,7 +19,6 @@ public class User {
 	private int id;
 	@Email
 	private String email;
-	@EqualsAndHashCode.Exclude
 	@LoginValidation
 	private String login;
 	@EqualsAndHashCode.Exclude
@@ -28,5 +27,5 @@ public class User {
 	@BirthDateValidation
 	private LocalDate birthday;
 	@EqualsAndHashCode.Exclude
-	Set<Integer> friends;
+	private Set<Integer> friends;
 }

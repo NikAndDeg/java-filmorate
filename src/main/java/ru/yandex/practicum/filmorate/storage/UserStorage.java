@@ -10,16 +10,16 @@ public interface UserStorage extends Storage<User> {
 	User save(User user);
 
 	@Override
-	Optional<User> get(int index);
+	Optional<User> get(int userId);
 
 	@Override
-	List<User> get(List<Integer> indexes);
+	List<User> get(List<Integer> usersId);
 
 	@Override
 	List<User> getAll();
 
 	@Override
-	Optional<User> remove(int index);
+	Optional<User> remove(int userId);
 
 	@Override
 	User update(User user);
@@ -27,9 +27,6 @@ public interface UserStorage extends Storage<User> {
 	@Override
 	boolean contains(User user);
 
-	boolean containsEmail(User user);
-
-	boolean containsName(User user);
-
-	boolean containsLogin(User user);
+	@Override
+	boolean contains(int userId);
 }

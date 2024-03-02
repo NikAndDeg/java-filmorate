@@ -17,4 +17,6 @@ public interface Storage<T> {
 	T update(T t);
 
 	boolean contains(T t);
+
+	boolean contains(int index);
 }

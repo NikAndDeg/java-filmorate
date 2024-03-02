@@ -50,4 +50,16 @@ public class ErrorHandler {
 	public ErrorResponse handleFriendshipNotFound(final UsersAreNotFriendsException exp) {
 		return new ErrorResponse("error", exp.getMessage());
 	}
+
+	@ExceptionHandler
+	@ResponseStatus(HttpStatus.NOT_FOUND)
+	public ErrorResponse handleFilmGenreException(final FilmGenreException exp) {
+		return new ErrorResponse("error", exp.getMessage());
+	}
+
+	@ExceptionHandler
+	@ResponseStatus(HttpStatus.NOT_FOUND)
+	public ErrorResponse handleMPARatingException(final MPARatingException exp) {
+		return new ErrorResponse("error", exp.getMessage());
+	}
 }
